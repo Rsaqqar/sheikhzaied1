@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>سباق الغواصات الذكية: رحلة الأعماق</title>
+<style>
+:root{--k:1}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:calc(var(--k) * clamp(11px, 0.8vw + 0.9vh + 4px, 26px))}
+body{margin:0;height:100vh;height:100dvh;overflow:hidden;font-family:Tahoma,"Segoe UI","Noto Sans Arabic",system-ui,sans-serif;background:#04162f;color:#fff;direction:rtl;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+button{font-family:inherit;cursor:pointer;color:inherit}
+button:disabled{cursor:default}
+.screen{position:absolute;inset:0;display:none}
+.screen.on{display:flex}
+
+/* ---------- الإعدادات ---------- */
+#setup{overflow:auto;background:radial-gradient(circle at 50% 0,#1e88c9,#0a2d5e 55%,#04162f);justify-content:center;align-items:flex-start}
+.sbox{width:min(62rem,100%);padding:1rem;display:flex;flex-direction:column;gap:.8rem}
+.sbox h1{margin:.2rem 0;text-align:center;font-size:1.9rem;text-shadow:0 2px 8px #0008}
+.sbox .meta{text-align:center;margin:0;opacity:.9;font-size:1rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.card{background:rgba(3,18,46,.7);border:2px solid rgba(255,255,255,.25);border-radius:1rem;padding:.8rem}
+.card h3{margin:0 0 .5rem;font-size:1.1rem}
+.lbl{font-size:.85rem;margin:.5rem 0 .25rem;opacity:.9}
+.card input[type=text],.card select{width:100%;font:inherit;font-size:1rem;padding:.5rem;border-radius:.6rem;border:2px solid #7fc8ff;background:#0b2a55;color:#fff}
+.sw,.avs{display:flex;flex-wrap:wrap;gap:.4rem}
+.sw button{width:2.4rem;height:2.4rem;border-radius:50%;border:3px solid #fff5;padding:0}
+.sw button.sel{border-color:#fff;box-shadow:0 0 0 3px #fff6}
+.avs button{font-size:1.5rem;padding:.2rem .5rem;border-radius:.7rem;border:2px solid #fff4;background:#0b2a55}
+.avs button.sel{border-color:#ffd54a;background:#164a8a}
+.avs button small{display:block;font-size:.55rem}
+.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:.6rem}
+.fields label{display:block;font-size:.85rem}
+.chk{display:flex;align-items:center;gap:.5rem;font-size:1rem;padding-top:1.1rem}
+.chk input{width:1.4rem;height:1.4rem}
+.btnbig{font-size:1.5rem;font-weight:bold;padding:.7rem 2rem;border-radius:1rem;border:3px solid #fff;background:linear-gradient(#ffd54a,#ff9800);color:#4a2500;box-shadow:0 4px 0 #a45a00;align-self:center}
+.btnbig:active{transform:translateY(2px)}
+
+/* ---------- اللعبة ---------- */
+#game{flex-direction:column}
+#hud{display:flex;align-items:center;justify-content:center;gap:.7rem;padding:.25rem .6rem;background:linear-gradient(#082a56,#0a3a73);border-bottom:2px solid rgba(255,255,255,.25);z-index:5}
+#hud h1{margin:0;font-size:1.1rem;text-align:center}
+.hb{width:2.4rem;height:2.4rem;font-size:1.2rem;border-radius:50%;border:2px solid #fff8;background:#0f4d8f;padding:0}
+.hb.off{opacity:.5}
+.timer{position:relative;width:3.2rem;height:3.2rem}
+.timer svg{width:100%;height:100%;transform:rotate(-90deg)}
+.timer circle{fill:rgba(0,0,0,.35);stroke-width:4}
+.timer .trk{stroke:#ffffff33}
+.timer .arc{stroke:#5ff0ff;stroke-linecap:round;stroke-dasharray:119.4;stroke-dashoffset:0;fill:none}
+.timer.low .arc{stroke:#ff5d5d}
+.timer span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:1.05rem}
+#teams{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:4px;min-height:0;background:#ffffff55}
+.team{--sh:2.6rem;--ch:2.3rem;display:flex;flex-direction:column;min-height:0;min-width:0;position:relative;overflow:hidden;background:linear-gradient(#69d4f7,#1a78c2 35%,#0b2e63 70%,#06142e);border-top:5px solid var(--c)}
+.th{display:flex;align-items:center;gap:.5rem;padding:.3rem .5rem;background:rgba(3,15,40,.78);flex-wrap:wrap}
+.th .av{font-size:1.6rem;line-height:1}
+.th .tn{font-weight:bold;font-size:1.1rem;color:var(--c);flex:1;min-width:6rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stats{display:flex;gap:.6rem;font-weight:bold;font-size:.95rem}
+.stats .ok{color:#7dffb0}.stats .bad{color:#ff9a9a}.stats .tm{color:#ffe28a}
+.prog{display:flex;gap:3px;padding:.25rem .5rem;background:rgba(3,15,40,.55)}
+.prog i{flex:1;height:.55rem;border-radius:.3rem;background:#ffffff33}
+.prog i.ok{background:#2ee88a}.prog i.bad{background:#ff6a6a}.prog i.cur{background:#ffd54a;box-shadow:0 0 6px #ffd54a}
+.mainrow{flex:1;display:flex;gap:.5rem;min-height:0;padding:.4rem}
+.lw{display:flex;gap:.25rem;flex:none;width:clamp(7rem,32%,11rem)}
+.scale{position:relative;width:2.6rem;flex:none}
+.sl{position:absolute;inset-inline:0;top:calc((100% - var(--sh) - var(--ch))*var(--i)/7 + var(--sh)/2);transform:translateY(-50%);font-size:.62rem;text-align:center;background:rgba(3,15,40,.7);border-radius:.4rem;padding:.1rem 0}
+.sl.here{background:var(--c);color:#04162f;font-weight:bold}
+.lane{position:relative;flex:1;border-radius:.8rem;overflow:hidden;border:2px solid rgba(255,255,255,.4);background:linear-gradient(#b4ecff,#3a9fe0 30%,#14407f 65%,#050f27)}
+.mk{position:absolute;inset-inline:0;top:calc((100% - var(--sh) - var(--ch))*var(--i)/7 + var(--sh)/2);border-top:1px dashed rgba(255,255,255,.3)}
+.bub{position:absolute;bottom:-1rem;width:.5rem;height:.5rem;border-radius:50%;border:1.5px solid #ffffffaa;animation:rise var(--d) linear infinite;animation-delay:var(--w)}
+.weed{position:absolute;bottom:0;width:1.6rem;height:2.6rem;transform-origin:50% 100%;animation:sway 3.2s ease-in-out infinite}
+.sub{position:absolute;left:50%;width:4.2rem;height:var(--sh);transform:translateX(-50%);top:calc((100% - var(--sh) - var(--ch))*var(--d)/7);transition:top 2.8s cubic-bezier(.45,.05,.3,1);z-index:3}
+.subin{position:relative;width:100%;height:100%}
+.sub svg{width:100%;height:100%;display:block;overflow:visible}
+.bodyc{fill:var(--c)}
+.beam{position:absolute;top:75%;left:50%;width:3.6rem;height:calc(var(--sh)*1.7);transform:translateX(-50%);background:linear-gradient(rgba(255,244,160,.65),transparent);clip-path:polygon(35% 0,65% 0,100% 100%,0 100%);animation:flick 2.4s ease-in-out infinite;pointer-events:none}
+.sonar{position:absolute;left:50%;top:50%;width:2.2rem;height:2.2rem;margin:-1.1rem;border-radius:50%;border:2px solid rgba(255,255,255,.8);opacity:0;pointer-events:none}
+.diving .sonar{animation:ping 1.2s ease-out infinite}
+.diving .sonar:nth-of-type(2){animation-delay:.6s}
+.shake .subin{animation:shk .5s}
+.chest{position:absolute;bottom:.1rem;left:50%;width:3.2rem;height:var(--ch);transform:translateX(-50%);z-index:2}
+.chest svg{width:100%;height:100%;overflow:visible}
+.chest .glow{fill:var(--c);opacity:0;transition:opacity .8s}
+.chest .gold{opacity:0;transition:opacity .6s}
+.chest .lid{transform-origin:8px 22px;transition:transform .8s}
+.chest.open .glow{opacity:.55}
+.chest.open .gold{opacity:1}
+.chest.open .lid{transform:rotate(-40deg)}
+.chest:not(.open) .glow{animation:none}
+.lane.glowing{box-shadow:0 0 18px 4px var(--c)}
+.qpanel{flex:1;min-width:0;display:flex;flex-direction:column;gap:.4rem;background:rgba(3,15,40,.75);border-radius:.8rem;padding:.5rem;overflow-y:auto;overflow-x:hidden}
+.qinfo{display:flex;justify-content:space-between;gap:.4rem;font-size:.85rem;flex-wrap:wrap}
+.qinfo .dp{color:#ffe28a;font-weight:bold}
+.streak{color:#7dfcff;font-weight:bold;min-height:1.1rem;font-size:.9rem}
+.qtype{align-self:flex-start;font-size:.75rem;background:var(--c);color:#04162f;font-weight:bold;border-radius:1rem;padding:.1rem .6rem}
+.qtext{font-size:1.2rem;font-weight:bold;line-height:1.6}
+.g-low .qtext{font-size:1.5rem}.g-low .opt{font-size:1.25rem}
+.opts{display:grid;gap:.45rem;grid-auto-rows:minmax(3rem,auto)}
+.opts.tf,.opts.sym{grid-template-columns:1fr 1fr}
+.opt{font-size:1.05rem;font-weight:bold;line-height:1.5;padding:.45rem .6rem;border-radius:.8rem;border:2px solid rgba(255,255,255,.45);background:rgba(255,255,255,.13);text-align:center;touch-action:manipulation}
+.opt:not(:disabled):active{background:rgba(255,255,255,.3)}
+.opt .big{font-size:2.3rem;line-height:1.3}
+.opt.ok{background:#14a35c;border-color:#8dffc0}
+.opt.no{background:#c93636;border-color:#ffabab}
+.opt.dim{opacity:.45}
+.fb{font-size:1rem;font-weight:bold;min-height:1.4rem;line-height:1.5}
+.fb.ok{color:#7dffb0}.fb.no{color:#ffb0b0}
+.fb small{display:block;font-weight:normal;color:#e6f4ff;font-size:.85rem}
+.doneBox{text-align:center;padding:.5rem}
+.doneBox .em{font-size:3rem}
+
+/* ---------- الطبقات ---------- */
+.ov{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(2,10,30,.85);z-index:50;padding:1rem;overflow:auto}
+.ov.on{display:flex}
+.panel{background:linear-gradient(#0c3a72,#071d40);border:3px solid #7fc8ff;border-radius:1.2rem;padding:1rem 1.2rem;text-align:center;max-width:46rem;width:100%}
+.panel h2{margin:.2rem 0 .6rem;font-size:1.7rem}
+.btns{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center;margin-top:.6rem}
+.btn{font-size:1.1rem;font-weight:bold;padding:.55rem 1.1rem;border-radius:.9rem;border:2px solid #fff9;background:#14589f}
+.btn.pri{background:linear-gradient(#ffd54a,#ff9800);color:#4a2500;border-color:#fff}
+.banner{font-size:1.8rem;font-weight:bold;color:#ffe28a;margin:.2rem 0}
+.why{font-size:1rem;margin-bottom:.6rem;opacity:.95}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;text-align:right}
+.rc{background:rgba(255,255,255,.08);border:3px solid var(--c);border-radius:1rem;padding:.6rem}
+.rc.win{background:rgba(255,213,74,.18);box-shadow:0 0 18px var(--c)}
+.rc h3{margin:0 0 .4rem;color:var(--c);font-size:1.15rem}
+.rc div{font-size:.95rem;padding:.12rem 0;display:flex;justify-content:space-between;gap:.5rem}
+.rc .bd{display:block;font-size:.85rem;color:#ffe28a;padding-top:.3rem}
+
+@keyframes rise{from{transform:translateY(0);opacity:.8}to{transform:translateY(-120vh);opacity:.1}}
+@keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+@keyframes flick{0%,100%{opacity:.55}50%{opacity:.85}}
+@keyframes ping{0%{transform:scale(.3);opacity:.7}100%{transform:scale(2.3);opacity:0}}
+@keyframes shk{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px) rotate(-3deg)}40%{transform:translateX(7px) rotate(3deg)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+body.paused *{animation-play-state:paused!important}
+body.reduce .bub{display:none}
+body.reduce .weed,body.reduce .beam,body.reduce .sonar{animation:none!important}
+body.reduce .shake .subin{animation:none}
+
+@media (max-width:760px) and (orientation:portrait){
+ #teams{grid-template-columns:1fr;grid-template-rows:1fr 1fr}
+ .grid2,.fields,.rgrid{grid-template-columns:1fr}
+ #hud h1{display:none}
+ .lw{width:clamp(6.2rem,30%,8rem)}
+ .team{--sh:2.2rem;--ch:2rem}.sub{width:3.4rem}
+}
+@media (max-width:560px){.grid2,.fields,.rgrid{grid-template-columns:1fr}}
+</style>
+</head>
+<body class="dev-pc g-high">
+
+<!-- شاشة إعدادات المعلم -->
+<div id="setup" class="screen on">
+ <div class="sbox">
+  <h1>🔱 سباق الغواصات الذكية: رحلة الأعماق</h1>
+  <p class="meta">المادة: الدراسات الاجتماعية · الدرس: الرؤية الأولى — الشيخ زايد –رحمه الله– بطل تحويل الفكر الاتحادي إلى واقع</p>
+  <div class="grid2" id="teamCards"></div>
+  <div class="card">
+   <h3>⚙️ إعدادات الجولة</h3>
+   <div class="fields">
+    <label>نوع الجهاز
+     <select id="selDevice"><option value="board">سبورة ذكية</option><option value="pc">حاسوب</option><option value="tablet">جهاز لوحي</option><option value="phone">هاتف</option></select></label>
+    <label>مستوى الصف
+     <select id="selGrade"><option value="g1-4">الصفوف 1 – 4 (3 خيارات، خط أكبر)</option><option value="g5-8">الصفوف 5 – 8</option><option value="g9-12" selected>الصفوف 9 – 12</option></select></label>
+    <label>مستوى الصعوبة
+     <select id="selDiff"><option value="easy">سهل (3 خيارات، من الأسهل)</option><option value="mid">متوسط (ترتيب ثابت)</option><option value="graded" selected>متدرج (من الأسهل للأصعب)</option></select></label>
+    <label>مدة الجولة
+     <select id="selDur"><option value="60">60 ثانية</option><option value="90" selected>90 ثانية</option><option value="120">120 ثانية</option><option value="150">150 ثانية</option></select></label>
+    <label class="chk"><input type="checkbox" id="chkSound" checked> تشغيل الصوت</label>
+    <label class="chk"><input type="checkbox" id="chkReduce"> تقليل الحركة</label>
+   </div>
+  </div>
+  <button id="btnStart" class="btnbig" type="button">🚀 تجهيز الجولة</button>
+ </div>
+</div>
+
+<!-- شاشة اللعب -->
+<div id="game" class="screen">
+ <div id="hud">
+  <button class="hb" id="btnPause" type="button" title="إيقاف مؤقت">⏸</button>
+  <div class="timer" id="timer"><svg viewBox="0 0 44 44"><circle class="trk" cx="22" cy="22" r="19" style="fill:none"/><circle class="arc" id="arc" cx="22" cy="22" r="19"/></svg><span id="timeNum">90</span></div>
+  <h1>🔱 سباق الغواصات الذكية: رحلة الأعماق</h1>
+  <button class="hb" id="btnSound" type="button" title="الصوت">🔊</button>
+  <button class="hb" id="btnMotion" type="button" title="تقليل الحركة">🌊</button>
+ </div>
+ <div id="teams"></div>
+
+ <div class="ov on" id="ovReady"><div class="panel">
+  <h2>🌊 هل أنتم مستعدون للغوص؟</h2>
+  <p id="readyInfo" style="font-size:1.1rem"></p>
+  <div class="btns"><button class="btn pri" id="btnBegin" type="button" style="font-size:1.6rem">ابدأ الغوص!</button><button class="btn" id="btnReadyBack" type="button">العودة للبداية</button></div>
+ </div></div>
+
+ <div class="ov" id="ovPause"><div class="panel">
+  <h2>⏸ توقّف مؤقت</h2>
+  <div class="btns">
+   <button class="btn pri" id="pResume" type="button">▶ متابعة</button>
+   <button class="btn" id="pRestart" type="button">🔄 إعادة الجولة</button>
+   <button class="btn" id="pSound" type="button">🔊 الصوت</button>
+   <button class="btn" id="pMotion" type="button">🌊 تقليل الحركة</button>
+   <button class="btn" id="pHome" type="button">🏠 العودة للبداية</button>
+  </div>
+ </div></div>
+
+ <div class="ov" id="ovResults"><div class="panel">
+  <h2>🏁 نتائج رحلة الأعماق</h2>
+  <div class="banner" id="rBanner"></div>
+  <div class="why" id="rWhy"></div>
+  <div class="rgrid" id="rGrid"></div>
+  <div class="btns"><button class="btn pri" id="rAgain" type="button">🔄 إعادة اللعب</button><button class="btn" id="rHome" type="button">🏠 العودة للبداية</button></div>
+ </div></div>
+</div>
+
+<script>
+'use strict';
+(function () {
+  var QN = 7, DIVE_MS = 2800, WRONG_MS = 2600;
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+
+  /* ================= بيانات الدرس: الرؤية الأولى (من الملف المرفق فقط) ================= */
+  // كل خيار: [النص, 1 إذا كان صحيحًا]
+  var QSETS = {
+    1: [
+      { id: 'A1', type: 'mcq', level: 1, text: 'ما عنوان الرؤية الأولى في هذا الدرس؟',
+        options: [['الشيخ زايد –رحمه الله– بطل تحويل الفكر الاتحادي إلى واقع', 1], ['الشيخ زايد –رحمه الله– وبناء المدن الحديثة', 0], ['الاتحاد في تاريخ المنطقة القديم', 0], ['مسيرة الاقتصاد في دولة الإمارات', 0]],
+        expl: 'عنوان الرؤية الأولى: الشيخ زايد بطل تحويل الفكر الاتحادي إلى واقع.' },
+      { id: 'A2', type: 'tf', level: 1, noShuffle: 1, text: 'تسلّم الشيخ زايد –رحمه الله– مقاليد الحكم في أبوظبي عام 1966م.',
+        options: [['صح ✔', 1], ['خطأ ✖', 0]], expl: 'نعم، كان ذلك عام 1966م وعدّه فرصة لترجمة مبادئه إلى خطوات عملية.' },
+      { id: 'A3', type: 'fill', level: 2, text: 'اعتبر الشيخ زايد تسلّمه الحكم فرصة لترجمة مبادئه إلى ........ عملية.',
+        options: [['خطوات', 1], ['شعارات', 0], ['وعود', 0], ['أمنيات', 0]], expl: 'ترجمة المبادئ إلى «خطوات عملية» في تنفيذ رؤيته للوحدة والتنمية.' },
+      { id: 'A4', type: 'cls', level: 1, text: 'تُصنَّف قيمة «التحفيز» ضمن:',
+        options: [['قيم ومواطنة', 1], ['المفاهيم والمصطلحات', 0], ['نواتج التعلم', 0], ['مخطط الرؤية', 0]], expl: 'قيم الرؤية: الاتحاد، النهضة، التضامن، التحفيز.' },
+      { id: 'A5', type: 'sym', level: 1, text: 'اختر الرمز الذي يعبّر عن قيمة «الاتحاد»:',
+        options: [['🤝', 1], ['⚔️', 0], ['🔒', 0], ['🌧️', 0]], expl: 'الاتحاد يعني التعاون والتكاتف، ويرمز له التصافح 🤝.' },
+      { id: 'A6', type: 'ord', level: 3, text: 'رتّب مسار رؤية الشيخ زايد كما ورد في «وسّع معرفتك»:',
+        options: [['تسلّم الحكم عام 1966م ثم مشروعات تغيّر ملامح أبوظبي ثم حلم وحدة الإمارات ثم جني الجميع ثمار التطور', 1], ['مشروعات تغيّر ملامح أبوظبي ثم تسلّم الحكم ثم جني ثمار التطور ثم حلم وحدة الإمارات', 0], ['حلم وحدة الإمارات ثم تسلّم الحكم ثم جني ثمار التطور ثم المشروعات', 0], ['جني ثمار التطور ثم حلم الوحدة ثم المشروعات ثم تسلّم الحكم', 0]],
+        expl: 'بدأ بتسلّم الحكم، ثم المشروعات، وكان ذلك مقدمة لحلم الوحدة ليجني الجميع ثمار التطور.' },
+      { id: 'A7', type: 'app', level: 3, text: 'شارك طالب في احتفال اليوم الوطني ورفع العلم بفخر. أي قيمتين يعبّر عنهما سلوكه؟',
+        options: [['الولاء والانتماء', 1], ['المنافسة على الجوائز', 0], ['الاعتماد على الغير', 0], ['الحياد', 0]], expl: 'الاحتفال باليوم الوطني سنويًا مدعوم بمعايير الولاء والانتماء.' }
+    ],
+    2: [
+      { id: 'B1', type: 'mcq', level: 1, text: 'ما الفكرة الرئيسة للرؤية الأولى؟',
+        options: [['ثمار الفكر الاتحادي تحوّلت إلى إنجازات باهرة ونهضة حديثة', 1], ['الاتحاد لم يغيّر شيئًا في الدولة', 0], ['النهضة بدأت دون فكر اتحادي', 0], ['ذكر الشيخ زايد سيزول مع الزمن', 0]],
+        expl: 'تحوّلت ثمار الفكر الاتحادي إلى إنجازات، وسيبقى ذكر الشيخ زايد خالدًا.' },
+      { id: 'B2', type: 'tf', level: 1, noShuffle: 1, text: 'اعتبر الشيخ زايد منصبه تتويجًا لحياته السياسية وليس منطلقًا لخدمة الأهالي.',
+        options: [['صح ✔', 0], ['خطأ ✖', 1]], expl: 'بل رآه منطلقًا لخدمة أهالي أبوظبي.' },
+      { id: 'B3', type: 'fill', level: 2, text: 'حلم الشيخ زايد: وحدة إمارات المنطقة وتكاملها بحيث يجني الجميع ثمار ........',
+        options: [['التطور', 1], ['الخلاف', 0], ['التراجع', 0], ['الانعزال', 0]], expl: 'وحدة الإمارات وتكاملها ليجني الجميع ثمار التطور.' },
+      { id: 'B4', type: 'cls', level: 1, text: 'يُصنَّف مصطلح «الديمومة» ضمن:',
+        options: [['المفاهيم والمصطلحات', 1], ['قيم ومواطنة', 0], ['نواتج التعلم', 0], ['حديث الإمارات', 0]], expl: 'المفاهيم والمصطلحات: الفكر الاتحادي، الديمومة، المشهد العالمي.' },
+      { id: 'B5', type: 'sym', level: 1, text: 'اختر الرمز الأنسب لقيمة «النهضة»:',
+        options: [['🏗️', 1], ['🥀', 0], ['🛑', 0], ['🕸️', 0]], expl: 'النهضة تعني البناء والتطور والتقدم، ويرمز لها البناء 🏗️.' },
+      { id: 'B6', type: 'ord', level: 3, text: 'رتّب أقسام الرؤية الأولى كما وردت في الدرس:',
+        options: [['الفكرة الرئيسة ثم مخطط الرؤية ثم أولًا: الإنجاز الاتحادي للشيخ زايد ثم ثانيًا: الفكر الاتحادي في الدولة', 1], ['مخطط الرؤية ثم أولًا: الإنجاز الاتحادي ثم الفكرة الرئيسة ثم ثانيًا: الفكر الاتحادي', 0], ['ثانيًا: الفكر الاتحادي ثم الفكرة الرئيسة ثم مخطط الرؤية ثم أولًا: الإنجاز الاتحادي', 0], ['أولًا: الإنجاز الاتحادي ثم ثانيًا: الفكر الاتحادي ثم الفكرة الرئيسة ثم مخطط الرؤية', 0]],
+        expl: 'تبدأ الرؤية بالفكرة الرئيسة ثم المخطط ثم المحورين: أولًا وثانيًا.' },
+      { id: 'B7', type: 'app', level: 3, text: 'أنعم الله على بلدٍ بثروة. ما التصرف المتوافق مع فلسفة الشيخ زايد؟',
+        options: [['توجيه الثروة لإصلاح البلاد وسوق الخير لشعبها', 1], ['حفظ الثروة بعيدًا عن الناس', 0], ['إنفاقها دون تخطيط', 0], ['تخصيصها لفئة قليلة', 0]], expl: 'أول ما نلتزم به أن نوجّه الثروة لإصلاح البلاد ولسوق الخير لشعبها.' }
+    ]
+  };
+  var TYPE_LABEL = { mcq: 'اختيار من متعدد', tf: 'صح أو خطأ', fill: 'أكمل الفراغ', cls: 'سؤال التصنيف', sym: 'اختر الرمز الصحيح', ord: 'سؤال الترتيب', app: 'موقف تطبيقي' };
+  var COLORS = [{ n: 'أصفر ذهبي', v: '#f5b700' }, { n: 'أحمر مرجاني', v: '#ff5d5d' }, { n: 'أزرق فيروزي', v: '#19c3d6' }, { n: 'أخضر زمردي', v: '#1fbf75' }, { n: 'بنفسجي ملكي', v: '#b184ff' }];
+  var AVATARS = [{ n: 'قبطان بحري', e: '👨‍✈️' }, { n: 'غواص ماهر', e: '🤿' }, { n: 'دولفين ذكي', e: '🐬' }, { n: 'أخطبوط عبقري', e: '🐙' }, { n: 'مستكشف المحيط', e: '🧭' }];
+  var DEF_NAMES = { 1: 'فريق قراصنة العلم', 2: 'فريق رواد الأعماق' };
+  var DEVICE_K = { board: 1.25, pc: 1, tablet: 1.05, phone: 0.9 };
+
+  var cfg = {
+    device: 'pc', grade: 'g9-12', difficulty: 'graded', duration: 90, sound: true,
+    reduce: !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches),
+    teams: { 1: { name: DEF_NAMES[1], color: 0, avatar: 1 }, 2: { name: DEF_NAMES[2], color: 1, avatar: 2 } }
+  };
+
+  var gameState = 'START', elapsed = 0, lastTs = 0, tickId = null, tasks = [], lastSec = -1;
+  var team1State = null, team2State = null, bound = false;
+  var E = { 1: {}, 2: {} };
+  function T(id) { return id === 1 ? team1State : team2State; }
+  function durMs() { return cfg.duration * 1000; }
+
+  /* ================= الصوت ================= */
+  var AC = null;
+  function ensureAudio() {
+    if (!cfg.sound) return null;
+    try {
+      if (!AC) { var C = window.AudioContext || window.webkitAudioContext; if (C) AC = new C(); }
+      if (AC && AC.state === 'suspended') AC.resume();
+    } catch (e) { AC = null; }
+    return AC;
+  }
+  function tone(a, f, d, type, v, when, slide) {
+    var t0 = a.currentTime + (when || 0), o = a.createOscillator(), g = a.createGain();
+    o.type = type || 'sine'; o.frequency.setValueAtTime(f, t0);
+    if (slide) o.frequency.exponentialRampToValueAtTime(slide, t0 + d);
+    g.gain.setValueAtTime(v || 0.07, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + d);
+    o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0 + d + 0.03);
+  }
+  function sfx(k) {
+    var a = ensureAudio(); if (!a) return;
+    try {
+      if (k === 'ok') { tone(a, 523, 0.15, 'triangle'); tone(a, 784, 0.25, 'triangle', 0.07, 0.12); }
+      else if (k === 'no') { tone(a, 220, 0.3, 'sawtooth', 0.05, 0, 140); }
+      else if (k === 'dive') { tone(a, 420, 1.4, 'sine', 0.05, 0, 160); }
+      else if (k === 'arrive') { tone(a, 660, 0.18, 'sine', 0.06); }
+      else if (k === 'treasure') { [523, 659, 784, 1047].forEach(function (f, i) { tone(a, f, 0.25, 'triangle', 0.07, i * 0.12); }); }
+      else if (k === 'win') { [523, 659, 784, 1047, 1319].forEach(function (f, i) { tone(a, f, 0.3, 'triangle', 0.07, i * 0.14); }); }
+      else if (k === 'end') { tone(a, 392, 0.3, 'triangle'); tone(a, 330, 0.4, 'triangle', 0.06, 0.25); }
+    } catch (e) { }
+  }
+
+  /* ================= أدوات ================= */
+  function shuffleOptions(options) {
+    var arr = options.slice();
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1)), x = arr[i]; arr[i] = arr[j]; arr[j] = x;
+    }
+    return arr;
+  }
+  function prepareQuestions(id) {
+    var list = QSETS[id].map(function (q) {
+      return {
+        id: q.id, type: q.type, level: q.level, text: q.text, expl: q.expl, noShuffle: !!q.noShuffle,
+        options: q.options.map(function (o) { return { text: o[0], isCorrect: o[1] === 1 }; })
+      };
+    });
+    var limit3 = cfg.grade === 'g1-4' || cfg.difficulty === 'easy';
+    list.forEach(function (q) {
+      if (limit3 && !q.noShuffle && q.options.length > 3) {
+        var wrong = q.options.filter(function (o) { return !o.isCorrect; });
+        var drop = wrong[Math.floor(Math.random() * wrong.length)];
+        q.options = q.options.filter(function (o) { return o !== drop; });
+      }
+      if (!q.noShuffle) q.options = shuffleOptions(q.options);   // خلط مرة واحدة عند التجهيز
+      q.options.forEach(function (o, i) { o.id = 'o' + i; });
+    });
+    if (cfg.difficulty !== 'mid') list.sort(function (a, b) { return a.level - b.level; });
+    return list;
+  }
+  function makeTeamState(id) {
+    return {
+      id: id, currentQuestionIndex: 0, correctCount: 0, wrongCount: 0, answeredCount: 0, currentDepth: 0,
+      finished: false, completionTime: null, answerLocked: false, isAnimating: false, streak: 0, maxStreak: 0,
+      usedQuestions: [], results: [], lastCorrectAt: null, badges: [], qs: prepareQuestions(id)
+    };
+  }
+  function later(ms, fn) { tasks.push({ at: elapsed + ms, fn: fn }); }
+  function fmt(ms) { return (ms / 1000).toFixed(1) + ' ث'; }
+
+  /* ================= المؤقت الوحيد ================= */
+  function clearAllTimers() { if (tickId !== null) { clearInterval(tickId); tickId = null; } tasks = []; }
+  function startTicker() { if (tickId !== null) clearInterval(tickId); lastTs = performance.now(); tickId = setInterval(tick, 100); }
+  function tick() {
+    var now = performance.now(), dt = now - lastTs; lastTs = now;
+    if (gameState !== 'RUNNING') return;
+    elapsed += Math.min(dt, 500);
+    if (elapsed >= durMs()) { elapsed = durMs(); updateClocks(); finishGame(); return; }
+    updateClocks();
+    var guard = 0;
+    while (gameState === 'RUNNING' && guard++ < 20) {
+      var idx = -1;
+      for (var i = 0; i < tasks.length; i++) { if (tasks[i].at <= elapsed && (idx < 0 || tasks[i].at < tasks[idx].at)) idx = i; }
+      if (idx < 0) break;
+      var tk = tasks.splice(idx, 1)[0];
+      try { tk.fn(); } catch (e) { if (window.console) console.error(e); }
+    }
+  }
+  function updateClocks() {
+    var sec = Math.floor(elapsed / 1000);
+    if (sec === lastSec) return; lastSec = sec;
+    var remain = Math.max(0, cfg.duration - sec);
+    $('#timeNum').textContent = remain;
+    $('#arc').style.strokeDashoffset = String(119.4 * (1 - remain / cfg.duration));
+    $('#timer').classList.toggle('low', remain <= 15);
+    [1, 2].forEach(function (id) {
+      var t = T(id); if (!t) return;
+      E[id].tm.textContent = Math.floor((t.completionTime !== null ? t.completionTime : elapsed) / 1000) + ' ث';
+    });
+  }
+
+  /* ================= بناء الواجهة ================= */
+  function buildTeamDOM(id) {
+    var s = document.createElement('section'); s.className = 'team'; s.id = 'team' + id;
+    var marks = '', scale = '', bubs = '';
+    for (var i = 0; i <= QN; i++) {
+      marks += '<div class="mk" style="--i:' + i + '"></div>';
+      scale += '<div class="sl" data-i="' + i + '" style="--i:' + i + '">' + (i === 0 ? 'سطح' : (i * 100) + 'م') + '</div>';
+    }
+    [10, 24, 40, 56, 72, 86].forEach(function (l, i) { bubs += '<i class="bub" style="left:' + l + '%;--d:' + (5 + i * 1.3) + 's;--w:' + (-i * 1.1) + 's"></i>'; });
+    s.innerHTML =
+      '<div class="th"><span class="av" data-r="av"></span><span class="tn" data-r="tn"></span>' +
+      '<div class="stats"><span class="ok">✔ <b data-r="ok">0</b></span><span class="bad">✖ <b data-r="bad">0</b></span><span class="tm">⏱ <b data-r="tm">0 ث</b></span></div></div>' +
+      '<div class="prog" data-r="prog"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>' +
+      '<div class="mainrow"><div class="lw"><div class="scale">' + scale + '</div>' +
+      '<div class="lane" data-r="lane">' + marks + bubs +
+      '<svg class="weed" style="left:4%" viewBox="0 0 20 40"><path d="M10 40C2 30 18 22 10 8" stroke="#2ecc71" stroke-width="4" fill="none" stroke-linecap="round"/></svg>' +
+      '<svg class="weed" style="right:4%;animation-delay:-1.4s" viewBox="0 0 20 40"><path d="M10 40C18 30 2 22 10 8" stroke="#27ae60" stroke-width="4" fill="none" stroke-linecap="round"/></svg>' +
+      '<div class="chest" data-r="chest"><svg viewBox="0 0 60 44"><circle class="glow" cx="30" cy="22" r="26"/>' +
+      '<rect x="8" y="22" width="44" height="20" rx="3" fill="#8b5a2b" stroke="#4a2c0f" stroke-width="2"/><rect class="gold" x="12" y="17" width="36" height="7" fill="#ffd54a"/>' +
+      '<g class="lid"><path d="M8 22Q8 8 30 8Q52 8 52 22Z" fill="#a8702f" stroke="#4a2c0f" stroke-width="2"/></g><rect x="26" y="26" width="8" height="8" rx="1" fill="#ffd54a" stroke="#4a2c0f" stroke-width="1.5"/></svg></div>' +
+      '<div class="sub" data-r="sub" style="--d:0"><div class="beam"></div><div class="sonar"></div><div class="sonar"></div><div class="subin">' +
+      '<svg viewBox="0 0 120 60"><rect x="56" y="3" width="5" height="14" fill="#9fb4c7"/><rect x="56" y="3" width="15" height="4" fill="#9fb4c7"/>' +
+      '<rect class="bodyc" x="42" y="14" width="30" height="14" rx="6" stroke="#06223f" stroke-width="2.5"/>' +
+      '<ellipse class="bodyc" cx="60" cy="38" rx="48" ry="17" stroke="#06223f" stroke-width="3"/><ellipse cx="60" cy="31" rx="38" ry="5" fill="#fff" opacity=".28"/>' +
+      '<circle cx="36" cy="39" r="6.5" fill="#bff1ff" stroke="#06223f" stroke-width="2"/><circle cx="60" cy="39" r="6.5" fill="#bff1ff" stroke="#06223f" stroke-width="2"/><circle cx="84" cy="39" r="6.5" fill="#bff1ff" stroke="#06223f" stroke-width="2"/>' +
+      '<rect x="3" y="30" width="9" height="17" rx="3" fill="#06223f"/></svg></div></div>' +
+      '</div></div>' +
+      '<div class="qpanel"><div class="qinfo"><span class="dp" data-r="dp"></span><span data-r="qn"></span></div><div class="streak" data-r="streak"></div>' +
+      '<div class="qtype" data-r="qtype"></div><div class="qtext" data-r="qtext"></div><div class="opts" data-r="opts"></div><div class="fb" data-r="fb"></div></div></div>';
+    $('#teams').appendChild(s);
+    var e = E[id];
+    e.root = s;
+    ['av', 'tn', 'ok', 'bad', 'tm', 'prog', 'lane', 'chest', 'sub', 'dp', 'qn', 'streak', 'qtype', 'qtext', 'opts', 'fb'].forEach(function (r) { e[r] = $('[data-r="' + r + '"]', s); });
+    e.segs = $$('i', e.prog);
+    e.sls = $$('.sl', s);
+    // مستمع واحد لكل فريق (تفويض الأحداث) لمنع تضاعف المستمعات
+    e.opts.addEventListener('click', function (ev) {
+      var b = ev.target.closest ? ev.target.closest('button.opt') : null;
+      if (!b || b.disabled) return;
+      handleTeamAnswer(id, b.getAttribute('data-id'));
+    });
+  }
+  function applyTeamLook(id) {
+    var c = cfg.teams[id], e = E[id];
+    e.root.style.setProperty('--c', COLORS[c.color].v);
+    e.av.textContent = AVATARS[c.avatar].e;
+    e.tn.textContent = c.name;
+  }
+  function buildSetup() {
+    var wrap = $('#teamCards');
+    [1, 2].forEach(function (id) {
+      var card = document.createElement('div'); card.className = 'card';
+      card.innerHTML = '<h3>' + (id === 1 ? 'الفريق الأول (النصف الأيمن)' : 'الفريق الثاني (النصف الأيسر)') + '</h3>' +
+        '<label class="lbl">اسم الفريق</label><input type="text" maxlength="24" data-name="' + id + '">' +
+        '<div class="lbl">لون الغواصة</div><div class="sw" data-sw="' + id + '"></div>' +
+        '<div class="lbl">رمز القبطان</div><div class="avs" data-av="' + id + '"></div>';
+      wrap.appendChild(card);
+      $('[data-name="' + id + '"]', card).value = cfg.teams[id].name;
+      $('[data-name="' + id + '"]', card).addEventListener('input', function (ev) { cfg.teams[id].name = ev.target.value; });
+      var sw = $('[data-sw="' + id + '"]', card);
+      COLORS.forEach(function (c, i) {
+        var b = document.createElement('button'); b.type = 'button'; b.style.background = c.v; b.title = c.n; b.setAttribute('aria-label', c.n);
+        b.addEventListener('click', function () {
+          var other = id === 1 ? 2 : 1;
+          if (cfg.teams[other].color === i) cfg.teams[other].color = cfg.teams[id].color;
+          cfg.teams[id].color = i; refreshSetup();
+        });
+        sw.appendChild(b);
+      });
+      var av = $('[data-av="' + id + '"]', card);
+      AVATARS.forEach(function (a, i) {
+        var b = document.createElement('button'); b.type = 'button'; b.innerHTML = a.e + '<small>' + a.n + '</small>';
+        b.addEventListener('click', function () { cfg.teams[id].avatar = i; refreshSetup(); });
+        av.appendChild(b);
+      });
+    });
+    refreshSetup();
+  }
+  function refreshSetup() {
+    [1, 2].forEach(function (id) {
+      $$('[data-sw="' + id + '"] button').forEach(function (b, i) { b.classList.toggle('sel', cfg.teams[id].color === i); });
+      $$('[data-av="' + id + '"] button').forEach(function (b, i) { b.classList.toggle('sel', cfg.teams[id].avatar === i); });
+    });
+  }
+  function applyDevice() {
+    document.body.classList.remove('dev-board', 'dev-pc', 'dev-tablet', 'dev-phone');
+    document.body.classList.add('dev-' + cfg.device);
+    document.documentElement.style.setProperty('--k', DEVICE_K[cfg.device] || 1);
+    document.body.classList.toggle('g-low', cfg.grade === 'g1-4');
+    document.body.classList.toggle('reduce', cfg.reduce);
+  }
+  function syncToggles() {
+    $('#btnSound').classList.toggle('off', !cfg.sound);
+    $('#btnSound').textContent = cfg.sound ? '🔊' : '🔇';
+    $('#btnMotion').classList.toggle('off', !cfg.reduce);
+    $('#pSound').textContent = cfg.sound ? '🔊 الصوت: يعمل' : '🔇 الصوت: متوقف';
+    $('#pMotion').textContent = cfg.reduce ? '🌊 تقليل الحركة: مفعّل' : '🌊 تقليل الحركة: متوقف';
+    $('#chkSound').checked = cfg.sound; $('#chkReduce').checked = cfg.reduce;
+    document.body.classList.toggle('reduce', cfg.reduce);
+  }
+  function toggleSound() { cfg.sound = !cfg.sound; syncToggles(); if (cfg.sound) sfx('arrive'); }
+  function toggleMotion() { cfg.reduce = !cfg.reduce; syncToggles(); }
+
+  /* ================= منطق اللعبة ================= */
+  function renderTeamQuestion(id) {
+    var t = T(id), e = E[id], q = t.qs[t.currentQuestionIndex];
+    if (!q) return;
+    e.qtype.textContent = TYPE_LABEL[q.type];
+    e.qtext.textContent = q.text;
+    e.fb.textContent = ''; e.fb.className = 'fb';
+    e.opts.innerHTML = '';
+    e.opts.className = 'opts ' + (q.type === 'tf' ? 'tf' : q.type === 'sym' ? 'sym' : '');
+    q.options.forEach(function (o) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'opt'; b.setAttribute('data-id', o.id);
+      var s = document.createElement('span'); if (q.type === 'sym') s.className = 'big'; s.textContent = o.text;
+      b.appendChild(s); e.opts.appendChild(b);
+    });
+    updateTeamUI(id);
+  }
+  function setFB(id, msg, cls, sub) {
+    var fb = E[id].fb; fb.className = 'fb ' + cls; fb.textContent = msg;
+    if (sub) { var s = document.createElement('small'); s.textContent = sub; fb.appendChild(s); }
+  }
+  function handleTeamAnswer(id, optionId) {
+    var t = T(id);
+    if (gameState !== 'RUNNING' || !t || t.finished || t.answerLocked || t.isAnimating) return;
+    var q = t.qs[t.currentQuestionIndex]; if (!q) return;
+    var opt = null, right = null;
+    q.options.forEach(function (o) { if (o.id === optionId) opt = o; if (o.isCorrect) right = o; });
+    if (!opt) return;
+    t.answerLocked = true;                // قفل الإجابة: يمنع التسجيل المزدوج
+    t.answeredCount++; t.usedQuestions.push(q.id); t.results.push(opt.isCorrect);
+    $$('.opt', E[id].opts).forEach(function (b) {
+      b.disabled = true;
+      var bid = b.getAttribute('data-id');
+      if (bid === optionId) b.classList.add(opt.isCorrect ? 'ok' : 'no');
+      else if (!opt.isCorrect && bid === right.id) b.classList.add('ok');
+      else b.classList.add('dim');
+    });
+    if (t.answeredCount >= QN) t.completionTime = elapsed;
+    if (opt.isCorrect) {
+      t.correctCount++; t.streak++; if (t.streak > t.maxStreak) t.maxStreak = t.streak;
+      t.lastCorrectAt = elapsed;
+      setFB(id, 'أحسنتم! غوص ناجح نحو الأعماق 🌊', 'ok', t.streak >= 2 ? 'تيار سريع ×' + t.streak : '');
+      sfx('ok');
+      updateTeamUI(id);
+      animateTeamDive(id);
+    } else {
+      t.wrongCount++; t.streak = 0;
+      setFB(id, 'محاولة جيدة، واجهت الغواصة تيارًا مائيًا!', 'no', 'الإجابة الصحيحة: ' + right.text + ' — ' + q.expl);
+      sfx('no');
+      var sub = E[id].sub; sub.classList.remove('shake'); void sub.offsetWidth; sub.classList.add('shake');
+      updateTeamUI(id);
+      later(WRONG_MS, function () { E[id].sub.classList.remove('shake'); goToNextTeamQuestion(id); });
+    }
+  }
+  function animateTeamDive(id) {
+    var t = T(id), e = E[id];
+    if (t.isAnimating) return;            // يمنع الغوص مرتين
+    t.isAnimating = true;
+    var target = Math.min(QN, t.currentDepth + 1);
+    e.sub.classList.add('diving');
+    e.sub.style.setProperty('--d', target);
+    sfx('dive');
+    later(DIVE_MS, function () {
+      t.currentDepth = target; t.isAnimating = false;
+      e.sub.classList.remove('diving');
+      var msg = 'وصلت غواصة ' + cfg.teams[id].name + ' إلى العمق ' + target + '!';
+      if (target >= QN) {
+        e.chest.classList.add('open'); e.lane.classList.add('glowing'); msg += ' 🏆 فُتح الكنز!'; sfx('treasure');
+      } else sfx('arrive');
+      setFB(id, msg, 'ok', t.streak >= 2 ? 'تيار سريع ×' + t.streak : '');
+      updateTeamUI(id);
+      later(700, function () { goToNextTeamQuestion(id); });
+    });
+  }
+  function goToNextTeamQuestion(id) {
+    var t = T(id);
+    if (gameState !== 'RUNNING' || t.finished) return;
+    t.answerLocked = false;
+    if (t.answeredCount >= QN) {
+      t.finished = true;
+      renderDone(id, false);
+      checkGameEnd();
+      return;
+    }
+    t.currentQuestionIndex = t.answeredCount;
+    renderTeamQuestion(id);
+  }
+  function renderDone(id, timeout) {
+    var t = T(id), e = E[id], completed = t.answeredCount >= QN;
+    e.qtype.textContent = completed ? '🏁 اكتملت الرحلة' : '⏰ انتهى الوقت';
+    e.qtext.textContent = completed ? 'اكتمل تحدي الأعماق!' : 'انتهى الوقت قبل إنجاز كل الأسئلة';
+    e.opts.className = 'opts'; e.opts.innerHTML = '';
+    e.fb.className = 'fb ok'; e.fb.textContent = 'صحيح: ' + t.correctCount + ' من ' + QN + (completed && t.completionTime !== null ? ' · الزمن: ' + fmt(t.completionTime) : '');
+    updateTeamUI(id);
+  }
+  function updateTeamUI(id) {
+    var t = T(id), e = E[id];
+    e.ok.textContent = t.correctCount; e.bad.textContent = t.wrongCount;
+    e.dp.textContent = 'العمق: ' + (t.currentDepth * 100) + ' م';
+    e.qn.textContent = t.finished || t.answeredCount >= QN ? 'أُنجزت ' + QN + ' من ' + QN : 'السؤال ' + (t.answeredCount + 1) + ' من ' + QN;
+    e.segs.forEach(function (s, i) {
+      s.className = i < t.results.length ? (t.results[i] ? 'ok' : 'bad') : (i === t.results.length && !t.finished ? 'cur' : '');
+    });
+    e.sls.forEach(function (s) { s.classList.toggle('here', parseInt(s.getAttribute('data-i'), 10) === t.currentDepth); });
+    e.streak.textContent = t.streak >= 2 ? '🌊 تيار سريع ×' + t.streak : '';
+    e.tm.textContent = Math.floor((t.completionTime !== null ? t.completionTime : elapsed) / 1000) + ' ث';
+  }
+  function checkGameEnd() {
+    if (gameState === 'RUNNING' && team1State.finished && team2State.finished) later(1600, finishGame);
+  }
+  function computeBadges(t) {
+    t.badges = [];
+    if (t.currentDepth >= QN) t.badges.push('🏆 كنز مفتوح');
+    if (t.maxStreak >= 2) t.badges.push('🌊 تيار سريع ×' + t.maxStreak);
+    if (t.answeredCount >= QN && t.completionTime !== null && t.completionTime <= durMs() * 0.65) t.badges.push('⚡ غوص قياسي');
+  }
+  function timeUsed(t) { return t.completionTime !== null ? t.completionTime : durMs(); }
+  function decideWinner() {
+    var a = team1State, b = team2State, A = cfg.teams[1].name, B = cfg.teams[2].name;
+    if (a.correctCount !== b.correctCount) {
+      var w = a.correctCount > b.correctCount ? 1 : 2;
+      return { w: w, why: 'السبب: الأعلى في عدد الإجابات الصحيحة (الأعمق غوصًا)' };
+    }
+    if (a.correctCount > 0 && a.lastCorrectAt !== b.lastCorrectAt) {
+      return { w: a.lastCorrectAt < b.lastCorrectAt ? 1 : 2, why: 'السبب: التعادل في الإجابات الصحيحة، وفاز الأسرع في الوصول إلى العمق' };
+    }
+    if (timeUsed(a) !== timeUsed(b)) {
+      return { w: timeUsed(a) < timeUsed(b) ? 1 : 2, why: 'السبب: التعادل في الإجابات الصحيحة، وفاز الأقل زمنًا في إنجاز التحدي' };
+    }
+    return { w: 0, why: 'تعادل كامل في الإجابات الصحيحة والزمن بين ' + A + ' و' + B };
+  }
+  function finishGame() {
+    if (gameState === 'FINISHED') return;
+    gameState = 'FINISHED'; tasks = [];
+    $('#btnPause').disabled = true;
+    [1, 2].forEach(function (id) {
+      var t = T(id), e = E[id], wasDone = t.finished;
+      t.finished = true; t.answerLocked = true; t.isAnimating = false;
+      t.currentDepth = t.correctCount;
+      e.sub.classList.remove('diving', 'shake');
+      e.sub.style.setProperty('--d', t.currentDepth);
+      if (t.currentDepth >= QN) { e.chest.classList.add('open'); e.lane.classList.add('glowing'); }
+      $$('.opt', e.opts).forEach(function (b) { b.disabled = true; });
+      if (!wasDone) renderDone(id, true);
+      computeBadges(t); updateTeamUI(id);
+    });
+    var res = decideWinner();
+    sfx(res.w ? 'win' : 'end');
+    showResults(res);
+  }
+  function showResults(res) {
+    var banner = $('#rBanner');
+    banner.textContent = res.w ? '🏆 الفائز: ' + cfg.teams[res.w].name : '🤝 تعادل!';
+    $('#rWhy').textContent = res.why;
+    var grid = $('#rGrid'); grid.innerHTML = '';
+    [1, 2].forEach(function (id) {
+      var t = T(id), c = cfg.teams[id], card = document.createElement('div');
+      card.className = 'rc' + (res.w === id ? ' win' : '');
+      card.style.setProperty('--c', COLORS[c.color].v);
+      var h = document.createElement('h3'); h.textContent = AVATARS[c.avatar].e + ' ' + c.name; card.appendChild(h);
+      [['الإجابات الصحيحة', t.correctCount], ['الأخطاء', t.wrongCount], ['الأسئلة المنجزة', t.answeredCount + ' من ' + QN],
+       ['العمق المكتشف', (t.currentDepth * 100) + ' م'], ['الزمن المستغرق', t.completionTime !== null ? fmt(t.completionTime) : 'انتهى الوقت (' + cfg.duration + ' ث)']].forEach(function (r) {
+        var d = document.createElement('div'), l = document.createElement('span'), v = document.createElement('b');
+        l.textContent = r[0]; v.textContent = r[1]; d.appendChild(l); d.appendChild(v); card.appendChild(d);
+      });
+      var bd = document.createElement('span'); bd.className = 'bd'; bd.textContent = 'الشارات: ' + (t.badges.length ? t.badges.join(' · ') : 'لا توجد'); card.appendChild(bd);
+      grid.appendChild(card);
+    });
+    $('#ovResults').classList.add('on');
+  }
+
+  /* ================= تحكم الجولة ================= */
+  function resetGame() {
+    clearAllTimers();                      // تصفير نظيف للمؤقتات والمهام
+    elapsed = 0; lastSec = -1; gameState = 'START';
+    team1State = makeTeamState(1); team2State = makeTeamState(2);
+    document.body.classList.remove('paused');
+    $('#btnPause').disabled = false;
+    [1, 2].forEach(function (id) {
+      var e = E[id];
+      applyTeamLook(id);
+      e.sub.classList.remove('diving', 'shake'); e.sub.style.setProperty('--d', 0);
+      e.chest.classList.remove('open'); e.lane.classList.remove('glowing');
+      renderTeamQuestion(id);
+    });
+    updateClocks();
+    $('#timeNum').textContent = cfg.duration; $('#arc').style.strokeDashoffset = '0'; $('#timer').classList.remove('low');
+    $('#ovPause').classList.remove('on'); $('#ovResults').classList.remove('on');
+    $('#readyInfo').textContent = cfg.teams[1].name + ' ضد ' + cfg.teams[2].name + ' — ' + QN + ' أسئلة لكل فريق خلال ' + cfg.duration + ' ثانية';
+    $('#ovReady').classList.add('on');
+    startTicker();
+  }
+  function beginRound() {
+    if (gameState !== 'START') return;
+    ensureAudio();
+    $('#ovReady').classList.remove('on');
+    gameState = 'RUNNING'; lastTs = performance.now();
+    sfx('arrive');
+  }
+  function pauseGame() {
+    if (gameState !== 'RUNNING') return;
+    gameState = 'PAUSED'; document.body.classList.add('paused');
+    syncToggles(); $('#ovPause').classList.add('on');
+  }
+  function resumeGame() {
+    if (gameState !== 'PAUSED') return;
+    $('#ovPause').classList.remove('on'); document.body.classList.remove('paused');
+    gameState = 'RUNNING'; lastTs = performance.now();
+  }
+  function backToSetup() {
+    clearAllTimers(); gameState = 'START';
+    document.body.classList.remove('paused');
+    ['ovReady', 'ovPause', 'ovResults'].forEach(function (i) { $('#' + i).classList.remove('on'); });
+    $('#game').classList.remove('on'); $('#setup').classList.add('on');
+    refreshSetup();
+  }
+  function startFromSetup() {
+    [1, 2].forEach(function (id) { var n = (cfg.teams[id].name || '').trim(); cfg.teams[id].name = n || DEF_NAMES[id]; $('[data-name="' + id + '"]').value = cfg.teams[id].name; });
+    applyDevice(); syncToggles();
+    $('#setup').classList.remove('on'); $('#game').classList.add('on');
+    ensureAudio();
+    resetGame();
+  }
+
+  function initGame() {
+    if (bound) return; bound = true;       // يمنع تضاعف المستمعات
+    buildTeamDOM(1); buildTeamDOM(2); buildSetup();
+    var w = window.innerWidth; cfg.device = w < 700 ? 'phone' : w < 1100 ? 'tablet' : 'pc';
+    $('#selDevice').value = cfg.device; $('#chkReduce').checked = cfg.reduce;
+    applyDevice(); syncToggles();
+    $('#selDevice').addEventListener('change', function (e) { cfg.device = e.target.value; applyDevice(); });
+    $('#selGrade').addEventListener('change', function (e) { cfg.grade = e.target.value; applyDevice(); });
+    $('#selDiff').addEventListener('change', function (e) { cfg.difficulty = e.target.value; });
+    $('#selDur').addEventListener('change', function (e) { cfg.duration = parseInt(e.target.value, 10) || 90; });
+    $('#chkSound').addEventListener('change', function (e) { cfg.sound = e.target.checked; syncToggles(); });
+    $('#chkReduce').addEventListener('change', function (e) { cfg.reduce = e.target.checked; syncToggles(); });
+    $('#btnStart').addEventListener('click', startFromSetup);
+    $('#btnBegin').addEventListener('click', beginRound);
+    $('#btnReadyBack').addEventListener('click', backToSetup);
+    $('#btnPause').addEventListener('click', pauseGame);
+    $('#btnSound').addEventListener('click', toggleSound);
+    $('#btnMotion').addEventListener('click', toggleMotion);
+    $('#pResume').addEventListener('click', resumeGame);
+    $('#pRestart').addEventListener('click', resetGame);
+    $('#pSound').addEventListener('click', toggleSound);
+    $('#pMotion').addEventListener('click', toggleMotion);
+    $('#pHome').addEventListener('click', backToSetup);
+    $('#rAgain').addEventListener('click', resetGame);
+    $('#rHome').addEventListener('click', backToSetup);
+    document.addEventListener('visibilitychange', function () { if (document.hidden) pauseGame(); });
+  }
+  initGame();
+})();
+</script>
+</body>
+</html>
